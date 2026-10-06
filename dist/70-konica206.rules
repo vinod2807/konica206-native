@@ -1,0 +1,2 @@
+# Let the logged-in user / lp group talk to the bizhub 206 via libusb (no CUPS backend needed).
+SUBSYSTEM=="usb", ATTR{idVendor}=="132b", ATTR{idProduct}=="232b", MODE="0660", GROUP="lp", TAG+="uaccess"
