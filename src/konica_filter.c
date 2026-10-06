@@ -261,9 +261,9 @@ static const struct { const char *pwg; const char *ppd; } pagesizes[] =
   { NULL, NULL }
 };
 
-/* Does the PPD define "*PageSize <name>/..." ? */
+/* Does the PPD define "*<ui> <name>/..." ? (e.g. PageSize, InputSlot) */
 static int
-ppd_has_pagesize(const char *ppd_path, const char *name)
+ppd_has_option(const char *ppd_path, const char *ui, const char *name)
 {
   FILE *fp = fopen(ppd_path, "r");
   char line[512], key[128];
@@ -271,7 +271,7 @@ ppd_has_pagesize(const char *ppd_path, const char *name)
 
   if (!fp)
     return 0;
-  snprintf(key, sizeof(key), "*PageSize %s", name);
+  snprintf(key, sizeof(key), "*%s %s", ui, name);
   while (fgets(line, sizeof(line), fp))
   {
     size_t kl = strlen(key);
@@ -285,9 +285,21 @@ ppd_has_pagesize(const char *ppd_path, const char *name)
   return found;
 }
 
+/* IPP tray source -> PPD InputSlot. Only trays the driver advertises
+ * (auto, tray-1, by-pass-tray) are mapped; anything else is dropped so the
+ * vendor filter never sees an unknown slot. */
+static const struct { const char *pwg; const char *ppd; } sources[] =
+{
+  { "auto",         "Auto" },
+  { "tray-1",       "Tray1" },
+  { "by-pass-tray", "Bypass" },
+  { NULL, NULL }
+};
+
 void
 konica_build_options(const konica_cfg_t *cfg, char *out, size_t outsize,
-                     const char *pwg_media_name, const char *sides, int xres, int yres)
+                     const char *pwg_media_name, const char *pwg_source_name,
+                     const char *sides, int xres, int yres)
 {
   size_t used = 0;
   const char *duplex = "None";
@@ -298,8 +310,17 @@ konica_build_options(const konica_cfg_t *cfg, char *out, size_t outsize,
     for (int i = 0; pagesizes[i].pwg; i++)
       if (!strcmp(pwg_media_name, pagesizes[i].pwg))
       {
-        if (ppd_has_pagesize(cfg->ppd, pagesizes[i].ppd))
+        if (ppd_has_option(cfg->ppd, "PageSize", pagesizes[i].ppd))
           used += snprintf(out + used, outsize - used, "PageSize=%s ", pagesizes[i].ppd);
+        break;
+      }
+
+  if (pwg_source_name)
+    for (int i = 0; sources[i].pwg; i++)
+      if (!strcmp(pwg_source_name, sources[i].pwg))
+      {
+        if (ppd_has_option(cfg->ppd, "InputSlot", sources[i].ppd))
+          used += snprintf(out + used, outsize - used, "InputSlot=%s ", sources[i].ppd);
         break;
       }
 

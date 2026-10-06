@@ -234,6 +234,7 @@ konica_printfile(pappl_job_t *job, pappl_pr_options_t *options, pappl_device_t *
   close(fd);
 
   konica_build_options(&cfg, opts, sizeof(opts), options->media.size_name,
+                       options->media.source,
                        sides_string(options->sides),
                        options->printer_resolution[0], options->printer_resolution[1]);
   {
@@ -363,7 +364,7 @@ r_endjob(pappl_job_t *job, pappl_pr_options_t *options, pappl_device_t *device)
     goto out;
   close(fd);
 
-  konica_build_options(&cfg, opts, sizeof(opts), options->media.size_name, sides_string(options->sides),
+  konica_build_options(&cfg, opts, sizeof(opts), options->media.size_name, options->media.source, sides_string(options->sides),
                        options->printer_resolution[0], options->printer_resolution[1]);
 
   if (r->failed || papplJobIsCanceled(job))

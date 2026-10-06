@@ -27,7 +27,7 @@ main(int argc, char **argv)
     return 2;
   }
   if (!opts[0])
-    konica_build_options(&cfg, opts, sizeof(opts), "iso_a4_210x297mm", "one-sided", 600, 600);
+    konica_build_options(&cfg, opts, sizeof(opts), "iso_a4_210x297mm", NULL, "one-sided", 600, 600);
 
   fprintf(stderr, "raster filter : %s\nvendor filter : %s\nPPD           : %s\nlibdir        : %s\noptions       : %s\n",
           cfg.raster_filter, cfg.vendor_filter, cfg.ppd, cfg.libdir, opts);

@@ -56,7 +56,8 @@ int konica_render_raster(const konica_cfg_t *cfg, const char *raster_path, const
 /* Build the CUPS option string from IPP-level values.
  * ppd_pagesize may be NULL. Only emits PageSize if the PPD actually defines it. */
 void konica_build_options(const konica_cfg_t *cfg, char *out, size_t outsize,
-                          const char *pwg_media_name, const char *sides,
+                          const char *pwg_media_name, const char *pwg_source_name,
+                           const char *sides,
                           int xres, int yres);
 
 #endif
