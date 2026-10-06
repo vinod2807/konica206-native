@@ -20,6 +20,7 @@
 
 #include "konica_filter.h"
 #include "konica_usb.h"
+#include "konica_watch.h"
 
 #if CUPS_VERSION_MAJOR >= 3
 #  define CUPS_LEN_T cups_len_t
@@ -159,6 +160,8 @@ static char *file_id(pappl_device_t *device, char *b, size_t n) { (void)device; 
 static int
 job_cancel_cb(void *ud)
 {
+  /* Called repeatedly by long renders: each call proves the job is alive. */
+  konica_watch_ping((pappl_job_t *)ud);
   return papplJobIsCanceled((pappl_job_t *)ud);
 }
 
@@ -195,6 +198,7 @@ send_spool(pappl_job_t *job, pappl_device_t *device, const char *spool, int copi
     {
       if (papplJobIsCanceled(job))
         goto done;
+      konica_watch_ping(job);
       if (papplDeviceWrite(device, buf, n) < 0)
       {
         papplLogJob(job, PAPPL_LOGLEVEL_ERROR, "USB transfer failed (copy %d)", c + 1);
@@ -239,6 +243,7 @@ konica_printfile(pappl_job_t *job, pappl_pr_options_t *options, pappl_device_t *
   }
 
   /* Render fully BEFORE touching the printer: a failed render never sends a partial job. */
+  konica_watch_job_start(job);
   if (konica_render_pdf(&cfg, pdf, spool, papplJobGetID(job), papplJobGetUsername(job),
                         papplJobGetName(job), opts, job_cancel_cb, job, log, sizeof(log)) != 0)
   {
@@ -252,6 +257,7 @@ konica_printfile(pappl_job_t *job, pappl_pr_options_t *options, pappl_device_t *
   ok = send_spool(job, device, spool, copies);
 
 out:
+  konica_watch_job_done(job);
   unlink(spool);
   return ok;
 }
@@ -286,6 +292,7 @@ r_startjob(pappl_job_t *job, pappl_pr_options_t *options, pappl_device_t *device
     return false;
   }
   papplJobSetData(job, r);
+  konica_watch_job_start(job);
   return true;
 }
 
@@ -320,6 +327,12 @@ r_writeline(pappl_job_t *job, pappl_pr_options_t *options, pappl_device_t *devic
   {
     r->failed = true;
     return false;
+  }
+  /* Raster lines arrive thousands per page; ping cheaply every 64 lines. */
+  {
+    static __thread unsigned ping_n = 0;
+    if (++ping_n % 64 == 0)
+      konica_watch_ping(job);
   }
   return true;
 }
@@ -369,6 +382,7 @@ out2:
 out:
   unlink(r->path);
   free(r);
+  konica_watch_job_done(job);
   return ok;
 }
 
@@ -497,6 +511,8 @@ system_cb(int num_options, cups_option_t *options, void *data)
     logfile = val;
   if ((val = cupsGetOption("log-level", (CUPS_LEN_T)num_options, options)) != NULL)
     loglevel = !strcmp(val, "debug") ? PAPPL_LOGLEVEL_DEBUG : !strcmp(val, "error") ? PAPPL_LOGLEVEL_ERROR : PAPPL_LOGLEVEL_INFO;
+  if ((val = cupsGetOption("stuck-watch-secs", (CUPS_LEN_T)num_options, options)) != NULL)
+    konica_watch_set_secs(atol(val));
 
   system = papplSystemCreate(PAPPL_SOPTIONS_MULTI_QUEUE | PAPPL_SOPTIONS_WEB_INTERFACE | PAPPL_SOPTIONS_WEB_LOG,
                              "Konica 206 Native", port, "_print,_universal", NULL, logfile,
@@ -520,6 +536,7 @@ main(int argc, char *argv[])
   };
 
   konica_cfg_load(&cfg);
+  konica_watch_init();   /* stuck-job watchdog (KONICA_STUCK_SECS, default 600s) */
   papplDeviceAddScheme("konica", PAPPL_DEVTYPE_CUSTOM_LOCAL, dev_list, dev_open, dev_close,
                        dev_read, dev_write, dev_status, dev_id);
 

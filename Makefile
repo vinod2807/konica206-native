@@ -10,8 +10,8 @@ PREFIX ?= /usr/local
 
 all: konica206-native konica-send konica-render test-chunking
 
-konica206-native: src/main.c src/konica_usb.c src/konica_filter.c
-	$(CC) $(CFLAGS) $(PAPPL_CFLAGS) $(USB_CFLAGS) -o $@ $^ $(PAPPL_LIBS) $(USB_LIBS)
+konica206-native: src/main.c src/konica_usb.c src/konica_filter.c src/konica_watch.c
+	$(CC) $(CFLAGS) $(PAPPL_CFLAGS) $(USB_CFLAGS) -o $@ $^ $(PAPPL_LIBS) $(USB_LIBS) -pthread
 
 # Stage 2: send a captured printer stream straight to the printer (no CUPS, no PAPPL)
 konica-send: tools/konica-send.c src/konica_usb.c
