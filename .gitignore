@@ -1,9 +1,4 @@
-# build outputs
-konica206-native
-konica-send
-konica-render
-test-chunking
-# local pkg-config shim
+# local pkg-config shim (use system pkgconf instead)
 pkg-config
 # runtime/state
 *.log
