@@ -1,0 +1,128 @@
+*PPD-Adobe: "4.3"
+*FormatVersion: "4.3"
+*FileVersion: "2.1.1"
+*LanguageVersion: English
+*LanguageEncoding: ISOLatin1
+*PSVersion: "(3010.000) 0"
+*LanguageLevel: "3"
+*FileSystem: False
+*PCFileName: "drvless.ppd"
+*Manufacturer: "KONICA"
+*ModelName: "KONICA Printer"
+*Product: "(KONICA Printer)"
+*NickName: "KONICA Printer, driverless, 2.1.1"
+*ShortNickName: "KONICA Printer"
+*DefaultOutputOrder: Normal
+*ColorDevice: False
+*LandscapeOrientation: Plus90
+*cupsVersion: 2.4
+*cupsSNMPSupplies: False
+*cupsLanguages: "en"
+*APSupplies: "http://localhost:8001/konica206/"
+*cupsSingleFile: True
+*cupsFilter2: "application/vnd.cups-pdf application/pdf 0 -"
+*cupsFilter2: "image/jpeg image/jpeg 0 -"
+*cupsFilter2: "image/png image/png 0 -"
+*OpenUI *PageSize/Media Size: PickOne
+*OrderDependency: 10 AnySetup *PageSize
+*DefaultPageSize: A4
+*PageSize A3: "<</PageSize[841.889763779528 1190.551181102362]>>setpagedevice"
+*PageSize A4: "<</PageSize[595.275590551181 841.889763779528]>>setpagedevice"
+*PageSize A5: "<</PageSize[419.527559055118 595.275590551181]>>setpagedevice"
+*PageSize A6: "<</PageSize[297.637795275591 419.527559055118]>>setpagedevice"
+*PageSize Executive: "<</PageSize[522 756]>>setpagedevice"
+*PageSize ISOB4: "<</PageSize[708.661417322835 1000.629921259842]>>setpagedevice"
+*PageSize ISOB5: "<</PageSize[498.897637795276 708.661417322835]>>setpagedevice"
+*PageSize Legal: "<</PageSize[612 1008]>>setpagedevice"
+*PageSize Letter: "<</PageSize[612 792]>>setpagedevice"
+*PageSize Statement: "<</PageSize[396 612]>>setpagedevice"
+*CloseUI: *PageSize
+*OpenUI *PageRegion/Media Size: PickOne
+*OrderDependency: 10 AnySetup *PageRegion
+*DefaultPageRegion: A4
+*PageRegion A3: "<</PageSize[841.889763779528 1190.551181102362]>>setpagedevice"
+*PageRegion A4: "<</PageSize[595.275590551181 841.889763779528]>>setpagedevice"
+*PageRegion A5: "<</PageSize[419.527559055118 595.275590551181]>>setpagedevice"
+*PageRegion A6: "<</PageSize[297.637795275591 419.527559055118]>>setpagedevice"
+*PageRegion Executive: "<</PageSize[522 756]>>setpagedevice"
+*PageRegion ISOB4: "<</PageSize[708.661417322835 1000.629921259842]>>setpagedevice"
+*PageRegion ISOB5: "<</PageSize[498.897637795276 708.661417322835]>>setpagedevice"
+*PageRegion Legal: "<</PageSize[612 1008]>>setpagedevice"
+*PageRegion Letter: "<</PageSize[612 792]>>setpagedevice"
+*PageRegion Statement: "<</PageSize[396 612]>>setpagedevice"
+*CloseUI: *PageRegion
+*DefaultImageableArea: A4
+*DefaultPaperDimension: A4
+*ImageableArea A3: "0 0 841.889763779528 1190.551181102362"
+*PaperDimension A3: "841.889763779528 1190.551181102362"
+*ImageableArea A4: "0 0 595.275590551181 841.889763779528"
+*PaperDimension A4: "595.275590551181 841.889763779528"
+*ImageableArea A5: "0 0 419.527559055118 595.275590551181"
+*PaperDimension A5: "419.527559055118 595.275590551181"
+*ImageableArea A6: "0 0 297.637795275591 419.527559055118"
+*PaperDimension A6: "297.637795275591 419.527559055118"
+*ImageableArea Executive: "0 0 522 756"
+*PaperDimension Executive: "522 756"
+*ImageableArea ISOB4: "0 0 708.661417322835 1000.629921259842"
+*PaperDimension ISOB4: "708.661417322835 1000.629921259842"
+*ImageableArea ISOB5: "0 0 498.897637795276 708.661417322835"
+*PaperDimension ISOB5: "498.897637795276 708.661417322835"
+*ImageableArea Legal: "0 0 612 1008"
+*PaperDimension Legal: "612 1008"
+*ImageableArea Letter: "0 0 612 792"
+*PaperDimension Letter: "612 792"
+*ImageableArea Statement: "0 0 396 612"
+*PaperDimension Statement: "396 612"
+*OpenUI *InputSlot/Media Source: PickOne
+*OrderDependency: 10 AnySetup *InputSlot
+*DefaultInputSlot: Auto
+*InputSlot Tray1: "<</MediaPosition 20>>setpagedevice"
+*InputSlot ByPassTray: "<</MediaPosition 19>>setpagedevice"
+*InputSlot Auto: "<</MediaPosition 0>>setpagedevice"
+*CloseUI: *InputSlot
+*% ColorModel from print-color-mode-supported
+*OpenUI *ColorModel/Color Mode: PickOne
+*OrderDependency: 10 AnySetup *ColorModel
+*ColorModel Gray/Monochrome: ""
+*DefaultColorModel: Gray
+*CloseUI: *ColorModel
+*OpenUI *Duplex/2-Sided Printing: PickOne
+*OrderDependency: 10 AnySetup *Duplex
+*DefaultDuplex: None
+*Duplex None/Off: "<</Duplex false>>setpagedevice"
+*Duplex DuplexNoTumble/On (Portrait): "<</Duplex true/Tumble false>>setpagedevice"
+*Duplex DuplexTumble/On (Landscape): "<</Duplex true/Tumble true>>setpagedevice"
+*CloseUI: *Duplex
+*cupsBackSide: Normal
+*OpenUI *OutputBin/Output Bin: PickOne
+*OrderDependency: 10 AnySetup *OutputBin
+*DefaultOutputBin: FaceDown
+*OutputBin FaceDown: ""
+*PageStackOrder FaceDown: Normal
+*CloseUI: *OutputBin
+*DefaultResolution: 600dpi
+*OpenUI *cupsPrintQuality/Print Quality: PickOne
+*OrderDependency: 10 AnySetup *cupsPrintQuality
+*DefaultcupsPrintQuality: Normal
+*cupsPrintQuality Draft/Draft: "<</HWResolution[300 300]>>setpagedevice"
+*cupsPrintQuality Normal/Normal: "<</HWResolution[600 600]>>setpagedevice"
+*cupsPrintQuality High/High: "<</HWResolution[600 600]>>setpagedevice"
+*CloseUI: *cupsPrintQuality
+*OpenUI *print-content-optimize/Print Optimization: PickOne
+*OrderDependency: 10 AnySetup *print-content-optimize
+*Defaultprint-content-optimize: auto
+*print-content-optimize auto: ""
+*print-content-optimize graphic: ""
+*print-content-optimize photo: ""
+*print-content-optimize text-and-graphic: ""
+*print-content-optimize text: ""
+*CloseUI: *print-content-optimize
+*OpenUI *print-scaling/Print Scaling: PickOne
+*OrderDependency: 10 AnySetup *print-scaling
+*Defaultprint-scaling: auto
+*print-scaling auto: ""
+*print-scaling auto-fit: ""
+*print-scaling fill: ""
+*print-scaling fit: ""
+*print-scaling none: ""
+*CloseUI: *print-scaling
