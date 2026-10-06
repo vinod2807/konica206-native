@@ -514,6 +514,11 @@ raster_append_page(cups_raster_t *ras, const unsigned char *px, int sw, int sh,
   hd.Tumble = tumble ? 1 : 0;
   hd.PageSize[0] = (unsigned)(pw + 0.5);
   hd.PageSize[1] = (unsigned)(ph + 0.5);
+  hd.ImagingBoundingBox[0] = 0;
+  hd.ImagingBoundingBox[1] = 0;
+  hd.ImagingBoundingBox[2] = (unsigned)(pw + 0.5);
+  hd.ImagingBoundingBox[3] = (unsigned)(ph + 0.5);
+  hd.cupsBorderlessScalingFactor = 1.0f;
   if (!cupsRasterWriteHeader2(ras, &hd))
     return -1;
   line = malloc(tw ? (size_t)tw : 1);
