@@ -4,3 +4,4 @@ pkg-config
 *.log
 *.bin
 *.state
+test-watchdog

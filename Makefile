@@ -28,6 +28,13 @@ test-chunking: test/test_chunking.c src/konica_usb.c
 check: test-chunking
 	./test-chunking
 
+# Slow (~40 s): stuck-watchdog policy proof, not part of default check
+check-watchdog: test-watchdog
+	./test-watchdog
+
+test-watchdog: test/test_watchdog.c src/konica_watch.c
+	$(CC) $(CFLAGS) -o $@ $^ $(PAPPL_LIBS) -pthread
+
 install: all
 	install -D -m755 konica206-native $(DESTDIR)$(PREFIX)/bin/konica206-native
 	install -D -m755 konica-send     $(DESTDIR)$(PREFIX)/bin/konica-send
