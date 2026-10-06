@@ -43,6 +43,7 @@ Stop the old `konica206uri` app (or unplug/replug) before a physical test: both 
 | KONICA_SERIAL | A8A6041029423 |
 | KONICA_SPOOLDIR | /var/tmp |
 | KONICA_FILTER_TIMEOUT | 300 (seconds per stage) |
+| KONICA_PDF_RENDERER | `system` (`builtin` uses gs pgmraw + own raster writer; default `system` until paper-signed-off) |
 | KONICA_STUCK_SECS | 600 (0 disables the stuck-job watchdog) |
 | KONICA_LISTEN | `localhost` (or `any`); server `-o listen=` overrides |
 | KONICA_MAX_MEM_MB | 2048 (0 disables address-space cap on filter children) |

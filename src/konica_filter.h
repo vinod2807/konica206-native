@@ -23,6 +23,7 @@ typedef struct konica_cfg_s
   char spooldir[512];        /* KONICA_SPOOLDIR: where per-job temp dirs live */
   char serial[64];           /* KONICA_SERIAL: restrict to one printer ("" = any) */
   int  timeout;              /* KONICA_FILTER_TIMEOUT seconds per stage */
+  int  pdf_renderer;         /* 0 = system pdftoraster, 1 = builtin gs path */
   long max_mem_mb;           /* KONICA_MAX_MEM_MB: RLIMIT_AS for filter children (0 = none) */
   long max_file_mb;          /* KONICA_MAX_FILE_MB: RLIMIT_FSIZE for filter children (0 = none) */
 } konica_cfg_t;

@@ -5,6 +5,7 @@ PAPPL_CFLAGS := $(shell pkg-config --cflags pappl)
 PAPPL_LIBS   := $(shell pkg-config --libs pappl)
 USB_CFLAGS   := $(shell pkg-config --cflags libusb-1.0)
 USB_LIBS     := $(shell pkg-config --libs libusb-1.0)
+RASTER_LIBS  := -lcupsimage -lcups
 
 PREFIX ?= /usr/local
 
@@ -19,7 +20,7 @@ konica-send: tools/konica-send.c src/konica_usb.c
 
 # Stage 1: PDF -> printer stream on disk, never touches USB
 konica-render: tools/konica-render.c src/konica_filter.c
-	$(CC) $(CFLAGS) -Isrc -o $@ $^
+	$(CC) $(CFLAGS) -Isrc -o $@ $^ $(RASTER_LIBS)
 
 # Offline test of the 8192-byte chunk rule using a fake libusb
 test-chunking: test/test_chunking.c src/konica_usb.c
