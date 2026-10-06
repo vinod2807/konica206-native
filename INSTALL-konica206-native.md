@@ -260,9 +260,29 @@ Check the logs after each test: `Render failed`, `USB transfer failed`, or `Unab
 - Run as a service: copy `dist/konica206-native.service` to `/etc/systemd/system/`, adjust the `Environment=` lines,
   `sudo install -m755 konica206-native /usr/local/bin/`, then `systemctl daemon-reload && systemctl enable --now konica206-native`.
   Keep the port at 8001 until the old app is retired.
-- GUI applications may need a CUPS queue pointing at the native endpoint:
-  `lpadmin -p konica206-native -E -v ipp://localhost:8001/ipp/print/konica206 -m everywhere`
-  (a new, separate queue; do not touch `KONICA_MINOLTA_206` or `konica206uri`).
+- GUI applications may need a CUPS queue pointing at the native endpoint (a new,
+  separate queue; do not touch `KONICA_MINOLTA_206` or `konica206uri`).
+  Attach the shipped PPD rather than `-m everywhere`:
+  ```sh
+  sudo lpadmin -p konica206-native -E \
+    -v ipp://localhost:8001/ipp/print/konica206 \
+    -P dist/konica206-native.ppd
+  sudo lpadmin -p konica206-native \
+    -o media-default=iso_a4_210x297mm -o sides-default=one-sided
+  ```
+- Why not `-m everywhere`: the native driver advertises full-bleed geometry
+  (zero margins, matching the vendor filter's expectation), so CUPS'
+  auto-generated `everywhere` PPD lists every size with a `.Borderless`
+  suffix (`A4.Borderless`, `Letter.Borderless`, ...). Functionally identical,
+  but confusing in print dialogs. `dist/konica206-native.ppd` was generated
+  with `driverless ipp://localhost:8001/ipp/print/konica206` and carries real
+  size names (`A4`, `Letter`, ...) with full-page image areas. The IPP values
+  sent to the printer are the same either way, so the render path is unaffected.
+- If the driver's media/option set ever changes, regenerate the file:
+  ```sh
+  driverless ipp://localhost:8001/ipp/print/konica206 > dist/konica206-native.ppd
+  ```
+  then re-attach it with `lpadmin -p konica206-native -P dist/konica206-native.ppd`.
 - Compare output side by side with `konica206uri` before suggesting a switch.
 
 ---
