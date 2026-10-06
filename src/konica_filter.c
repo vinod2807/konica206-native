@@ -228,6 +228,64 @@ ppd_paper_points(const char *ppd_path, const char *name, double *w, double *h)
   return -1;
 }
 
+/* MediaPosition number for "*InputSlot <name>" from "<< /MediaPosition N>>". */
+static int
+ppd_media_position(const char *ppd_path, const char *slot)
+{
+  FILE *fp = fopen(ppd_path, "r");
+  char line[512], key[128];
+  int pos = 0;
+
+  if (!fp || !slot || !*slot)
+    return 0;
+  snprintf(key, sizeof(key), "*InputSlot %s", slot);
+  while (fgets(line, sizeof(line), fp))
+  {
+    if (!strncmp(line, key, strlen(key)))
+    {
+      const char *mp = strstr(line, "MediaPosition");
+      if (mp && sscanf(mp + 13, " %d", &pos) == 1 && pos >= 0)
+      {
+        fclose(fp);
+        return pos;
+      }
+    }
+  }
+  fclose(fp);
+  return 0;
+}
+
+/* Extract "InputSlot=<name>" from a CUPS option string. */
+static void
+opt_inputslot(const char *options, char *name, size_t n)
+{
+  const char *p = options ? strstr(options, "InputSlot=") : NULL;
+
+  name[0] = 0;
+  if (!p)
+    return;
+  p += 10;
+  size_t i = 0;
+  while (*p && *p != ' ' && i + 1 < n)
+    name[i++] = *p++;
+  name[i] = 0;
+}
+
+/* MediaPosition for the requested tray. The options string already carries
+ * the PPD slot name (konica_build_options maps IPP tray-1 -> Tray1 etc.),
+ * so look "<< /MediaPosition N>>" up directly. Empty/unknown yields 0,
+ * exactly like pdftoraster with no InputSlot. */
+static int
+slot_media_pos(const konica_cfg_t *cfg, const char *options)
+{
+  char slot[64];
+
+  opt_inputslot(options, slot, sizeof(slot));
+  if (!slot[0])
+    return 0;
+  return ppd_media_position(cfg->ppd, slot);
+}
+
 /* Extract "PageSize=<name>" from a CUPS option string. */
 static void
 opt_pagesize(const char *options, char *name, size_t n)
@@ -435,7 +493,7 @@ pgm_read(const char *path, unsigned char **px, int *w, int *h)
 static int
 raster_append_page(cups_raster_t *ras, const unsigned char *px, int sw, int sh,
                    int tw, int th, double pw, double ph, int res,
-                   int duplex, int tumble)
+                   int duplex, int tumble, int media_pos)
 {
   cups_page_header2_t hd;
   unsigned char *line;
@@ -451,6 +509,7 @@ raster_append_page(cups_raster_t *ras, const unsigned char *px, int sw, int sh,
   hd.cupsNumColors = 1;
   hd.NumCopies = 1;
   hd.HWResolution[0] = hd.HWResolution[1] = res;
+  hd.MediaPosition = (unsigned)media_pos;
   hd.Duplex = duplex ? 1 : 0;
   hd.Tumble = tumble ? 1 : 0;
   hd.PageSize[0] = (unsigned)(pw + 0.5);
@@ -553,7 +612,8 @@ render_pdf_builtin(const konica_cfg_t *cfg, const char *pdf_path, const char *ra
         snprintf(log + strlen(log), logsize - strlen(log), "builtin: bad pgm page %d\n", i);
       goto out;
     }
-    if (raster_append_page(ras, px, sw, sh, tw, th, pw, ph, res, duplex, tumble) != 0)
+    if (raster_append_page(ras, px, sw, sh, tw, th, pw, ph, res, duplex, tumble,
+                               slot_media_pos(cfg, options)) != 0)
     {
       free(px);
       goto out;
