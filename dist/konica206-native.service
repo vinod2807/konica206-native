@@ -8,6 +8,9 @@ Environment=KONICA_VENDOR_FILTER=/usr/local/lib/konica/KonicaMinolta/245igdi/Fil
 Environment=KONICA_LIBDIR=/usr/local/lib/konica/lib
 Environment=KONICA_PPD=/var/lib/legacy-printer-app/ppd/KonicaMinolta-206-fullbleed.ppd
 Environment=KONICA_RASTER_FILTER=/usr/lib/cups/filter/pdftoraster
+# Pinned default: system renderer. builtin flips duplex binding on some
+# documents (under investigation); enable only for single-sided tests.
+Environment=KONICA_PDF_RENDERER=system
 ExecStart=/usr/local/bin/konica206-native server -o server-port=8001
 Restart=on-failure
 PrivateTmp=true
