@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <time.h>
@@ -37,6 +38,10 @@ konica_cfg_load(konica_cfg_t *c)
   env_or(c->serial, sizeof(c->serial), "KONICA_SERIAL", "A8A6041029423");
   t = getenv("KONICA_FILTER_TIMEOUT");
   c->timeout = (t && atoi(t) > 0) ? atoi(t) : 300;
+  t = getenv("KONICA_MAX_MEM_MB");
+  c->max_mem_mb = (t && atol(t) >= 0) ? atol(t) : 2048;
+  t = getenv("KONICA_MAX_FILE_MB");
+  c->max_file_mb = (t && atol(t) >= 0) ? atol(t) : 512;
 }
 
 static void
@@ -123,6 +128,30 @@ konica_run_filter(const konica_cfg_t *cfg, const char *prog,
     for (int fd = 3; fd < 1024; fd++)
       close(fd);
     setsid();
+    /* Contain hostile/corrupt inputs: no core dumps, bounded CPU/address
+     * space/output size. Limits come from KONICA_MAX_MEM_MB /
+     * KONICA_MAX_FILE_MB (0 disables that limit). A4 600 dpi gray is
+     * ~35 MB/page, so the 2048/512 MiB defaults have wide headroom. */
+    {
+      struct rlimit rl;
+      rl.rlim_cur = rl.rlim_max = 0;
+      setrlimit(RLIMIT_CORE, &rl);
+      if (cfg->timeout > 0)
+      {
+        rl.rlim_cur = rl.rlim_max = (rlim_t)(cfg->timeout + 30);
+        setrlimit(RLIMIT_CPU, &rl);
+      }
+      if (cfg->max_mem_mb > 0)
+      {
+        rl.rlim_cur = rl.rlim_max = (rlim_t)cfg->max_mem_mb << 20;
+        setrlimit(RLIMIT_AS, &rl);
+      }
+      if (cfg->max_file_mb > 0)
+      {
+        rl.rlim_cur = rl.rlim_max = (rlim_t)cfg->max_file_mb << 20;
+        setrlimit(RLIMIT_FSIZE, &rl);
+      }
+    }
     execve(prog, argv, envp);
     _exit(127);
   }

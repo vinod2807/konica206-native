@@ -506,11 +506,24 @@ system_cb(int num_options, cups_option_t *options, void *data)
 
   const char *logfile = "-";                /* stderr -> journald when run as a service */
   pappl_loglevel_t loglevel = PAPPL_LOGLEVEL_INFO;
+  const char *listen = NULL;                 /* NULL = all interfaces (historic) */
+  const char *listen_opt;
 
   if ((val = cupsGetOption("log-file", (CUPS_LEN_T)num_options, options)) != NULL)
     logfile = val;
   if ((val = cupsGetOption("log-level", (CUPS_LEN_T)num_options, options)) != NULL)
     loglevel = !strcmp(val, "debug") ? PAPPL_LOGLEVEL_DEBUG : !strcmp(val, "error") ? PAPPL_LOGLEVEL_ERROR : PAPPL_LOGLEVEL_INFO;
+  /* -o listen=localhost restricts IPP to loopback; -o listen=any keeps the
+   * historic all-interfaces behaviour. Default is localhost (D4). */
+  listen_opt = cupsGetOption("listen", (CUPS_LEN_T)num_options, options);
+  {
+    const char *env = getenv("KONICA_LISTEN");
+    const char *want = listen_opt && *listen_opt ? listen_opt : (env && *env ? env : "localhost");
+    if (!strcmp(want, "any"))
+      listen = NULL;
+    else
+      listen = "localhost";
+  }
   if ((val = cupsGetOption("stuck-watch-secs", (CUPS_LEN_T)num_options, options)) != NULL)
     konica_watch_set_secs(atol(val));
 
@@ -520,7 +533,7 @@ system_cb(int num_options, cups_option_t *options, void *data)
   if (!system)
     return NULL;
 
-  papplSystemAddListeners(system, NULL);
+  papplSystemAddListeners(system, listen);
   papplSystemSetPrinterDrivers(system, 1, drivers, konica_autoadd, NULL, konica_driver, NULL);
   papplSystemSetFooterHTML(system, "konica206-native " VERSION);
   papplSystemSetVersions(system, 1, &ver);
