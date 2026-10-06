@@ -282,7 +282,10 @@ Check the logs after each test: `Render failed`, `USB transfer failed`, or `Unab
   ```sh
   driverless ipp://localhost:8001/ipp/print/konica206 > dist/konica206-native.ppd
   ```
-  then re-attach it with `lpadmin -p konica206-native -P dist/konica206-native.ppd`.
+  then delete any `ISOB4`/`ISOB5` size lines: those names are not standard
+  Windows paper IDs and crash Wine's `gdi32` (divide-by-zero) when printing
+  from Adobe Reader or Notepad. Then re-attach it with
+  `lpadmin -p konica206-native -P dist/konica206-native.ppd`.
 - Compare output side by side with `konica206uri` before suggesting a switch.
 
 ---
