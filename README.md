@@ -43,6 +43,22 @@ Stop the old `konica206uri` app (or unplug/replug) before a physical test: both 
 | KONICA_SERIAL | A8A6041029423 |
 | KONICA_SPOOLDIR | /var/tmp |
 | KONICA_FILTER_TIMEOUT | 300 (seconds per stage) |
+| KONICA_STUCK_SECS | 600 (0 disables the stuck-job watchdog) |
+| KONICA_LISTEN | `localhost` (or `any`); server `-o listen=` overrides |
+| KONICA_MAX_MEM_MB | 2048 (0 disables address-space cap on filter children) |
+| KONICA_MAX_FILE_MB | 512 (0 disables output-size cap on filter children) |
+
+## Unsupported inputs
+
+`application/postscript` is deliberately unadvertised (PAPPL has no PS
+render path in this driver). Behaviour, verified 2026-10-06:
+
+- Direct IPP: job is aborted (`aborted-by-system`); the server log names
+  the format (`Unable to process job with format 'application/postscript'`).
+  PAPPL 1.4 offers no hook for a custom rejection message, so this terse
+  abort is the explicit rejection — send PDF instead.
+- Via the CUPS proxy queue: CUPS converts PS to PDF itself (`gstopdf`,
+  verified offline) and the job prints normally.
 
 ## Test-only device
 `konicafile:///some/dir` writes each job to `dir/job-*.bin` so the whole IPP path can be tested with no printer.
