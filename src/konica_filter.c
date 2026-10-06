@@ -576,6 +576,40 @@ out:
   return rc;
 }
 
+/* Optional capture of both sides of the vendor stage for offline diffing.
+ * Set KONICA_CAPTURE_DIR to a directory; files land as <jobid>-in.ras and
+ * <jobid>-out.prn. Empty/unset disables. For diagnosis only. */
+static void
+capture_copy(const char *src, int job_id, const char *suffix)
+{
+  const char *dir = getenv("KONICA_CAPTURE_DIR");
+  if (!dir || !*dir || !src)
+    return;
+  {
+    char dst[1024], cmd[2200];
+    size_t i, n = 0;
+    /* Keep it to a simple filename; job_id is an integer from PAPPL. */
+    snprintf(dst, sizeof(dst), "%s/%d-%s", dir, job_id, suffix);
+    for (i = 0; dst[i] && n + 4 < sizeof(cmd); i++)
+    {
+      if (dst[i] == 39) /* single quote */
+      {
+        memcpy(cmd + n, "'\''", 4);
+        n += 4;
+      }
+      else
+        cmd[n++] = dst[i];
+    }
+    cmd[n] = 0;
+    if (n > 0)
+    {
+      char full[2300];
+      snprintf(full, sizeof(full), "cp -- '%s' '%s' 2>/dev/null", src, cmd);
+      if (system(full) != 0) {}
+    }
+  }
+}
+
 int
 konica_render_raster(const konica_cfg_t *cfg, const char *raster_path, const char *out_path,
                      int job_id, const char *user, const char *title, const char *options,
@@ -583,6 +617,7 @@ konica_render_raster(const konica_cfg_t *cfg, const char *raster_path, const cha
 {
   struct stat st;
 
+  capture_copy(raster_path, job_id, "in.ras");
   if (konica_run_filter(cfg, cfg->vendor_filter, "application/vnd.cups-raster", "application/octet-stream",
                         job_id, user, title, options, NULL, raster_path, out_path,
                         cancel, cancel_ud, log, logsize) != 0)
@@ -593,6 +628,7 @@ konica_render_raster(const konica_cfg_t *cfg, const char *raster_path, const cha
       snprintf(log + strlen(log), logsize - strlen(log), "vendor filter produced no output\n");
     return -1;
   }
+  capture_copy(out_path, job_id, "out.prn");
   return 0;
 }
 
