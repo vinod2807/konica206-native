@@ -255,6 +255,33 @@ ppd_media_position(const char *ppd_path, const char *slot)
   return 0;
 }
 
+/* PPD back-side handling for duplex ("*cupsBackSide: Rotated" etc.).
+ * Returns 'R' (rotated), 'M' (manual-tumble), 'F' (flipped) or 0 (unknown). */
+static char
+ppd_backside(const char *ppd_path)
+{
+  FILE *fp = fopen(ppd_path, "r");
+  char line[512], v[64] = "";
+
+  if (!fp)
+    return 0;
+  while (fgets(line, sizeof(line), fp))
+  {
+    if (!strncmp(line, "*cupsBackSide", 13) && sscanf(line, "%*[^:]: %63s", v) == 1)
+      break;
+    if (!strncmp(line, "*cupsFlipDuplex", 15) && sscanf(line, "%*[^:]: %63s", v) == 1)
+      break;
+  }
+  fclose(fp);
+  if (!strcmp(v, "Rotated"))
+    return 'R';
+  if (!strcmp(v, "ManualTumble"))
+    return 'M';
+  if (!strcmp(v, "Flipped"))
+    return 'F';
+  return 0;
+}
+
 /* Extract "InputSlot=<name>" from a CUPS option string. */
 static void
 opt_inputslot(const char *options, char *name, size_t n)
@@ -487,13 +514,82 @@ pgm_read(const char *path, unsigned char **px, int *w, int *h)
 
 #include <cups/raster.h>
 
+/* Back-side transforms for duplex, in place on an 8-bit tw*th page.
+ * Rule table (cups-filters pdftoraster, keyed by PPD *cupsBackSide):
+ *   Rotated      + Tumble off -> rotate 180
+ *   ManualTumble + Tumble on  -> rotate 180
+ *   Flipped      + Tumble off -> flip vertically (top-bottom)
+ *   Flipped      + Tumble on  -> flip horizontally (left-right)
+ * Our PPD says Rotated: for long-edge portrait the back side goes out
+ * upside-down, and the printer mechanics turn that into long-edge output. */
+static void
+page_rot180(unsigned char *px, int w, int h)
+{
+  size_t n = (size_t)w * h;
+  size_t i, j;
+
+  for (i = 0, j = n - 1; i < j; i++, j--)
+  {
+    unsigned char t = px[i];
+    px[i] = px[j];
+    px[j] = t;
+  }
+}
+
+static void
+page_flip_v(unsigned char *px, int w, int h)
+{
+  unsigned char *tmp = malloc((size_t)w * h);
+  int y;
+
+  if (!tmp)
+    return;
+  for (y = 0; y < h; y++)
+    memcpy(tmp + (size_t)y * w, px + (size_t)(h - 1 - y) * w, (size_t)w);
+  memcpy(px, tmp, (size_t)w * h);
+  free(tmp);
+}
+
+static void
+page_flip_h(unsigned char *px, int w, int h)
+{
+  int y, x;
+
+  for (y = 0; y < h; y++)
+    for (x = 0; x < w / 2; x++)
+    {
+      unsigned char t = px[(size_t)y * w + x];
+      px[(size_t)y * w + x] = px[(size_t)y * w + w - 1 - x];
+      px[(size_t)y * w + w - 1 - x] = t;
+    }
+}
+
+/* Which transform applies to this 1-based page (0 = none, 1 = rot180,
+ * 2 = flip-v, 3 = flip-h)? Only even (back-side) pages of duplex jobs. */
+static int
+backside_transform(char backside, int duplex, int tumble, int page_1based)
+{
+  int back = duplex && (page_1based % 2 == 0);
+
+  if (!back)
+    return 0;
+  if (backside == 'R')
+    return !tumble ? 1 : 0;
+  if (backside == 'M')
+    return tumble ? 1 : 0;
+  if (backside == 'F')
+    return !tumble ? 2 : 3;
+  return 0;
+}
+
 /* Write one page: normalize bitmap to exactly tw*th (center crop, else pad
  * white) and append a compressed CUPS raster v2 page mirroring pdftoraster's
  * header fields (8-bit gray, Duplex/Tumble, 600 dpi, zero margins). */
 static int
 raster_append_page(cups_raster_t *ras, const unsigned char *px, int sw, int sh,
                    int tw, int th, double pw, double ph, int res,
-                   int duplex, int tumble, int media_pos)
+                   int duplex, int tumble, int media_pos,
+                   char backside, int page_1based)
 {
   cups_page_header2_t hd;
   unsigned char *line;
@@ -525,26 +621,47 @@ raster_append_page(cups_raster_t *ras, const unsigned char *px, int sw, int sh,
   if (!line)
     return -1;
   {
+    unsigned char *norm;
     int yoff = (sh > th) ? (sh - th) / 2 : 0;   /* crop: center */
     int xoff = (sw > tw) ? (sw - tw) / 2 : 0;
     int ypad = (th > sh) ? (th - sh) / 2 : 0;   /* pad: center on white */
     int xpad = (tw > sw) ? (tw - sw) / 2 : 0;
     int cw = sw < tw ? sw : tw;
+    int y, tr;
 
-    for (int y = 0; y < th; y++)
+    norm = malloc((size_t)tw * th);
+    if (!norm)
     {
-      memset(line, 255, (size_t)tw);
+      free(line);
+      return -1;
+    }
+    memset(norm, 255, (size_t)tw * th);
+    for (y = 0; y < th; y++)
+    {
       if (y >= ypad && y < ypad + (sh < th ? sh : th))
       {
         int sy = y - ypad + yoff;
-        memcpy(line + xpad, px + (size_t)sy * sw + xoff, (size_t)cw);
+        memcpy(norm + (size_t)y * tw + xpad, px + (size_t)sy * sw + xoff, (size_t)cw);
       }
+    }
+    tr = backside_transform(backside, duplex, tumble, page_1based);
+    if (tr == 1)
+      page_rot180(norm, tw, th);
+    else if (tr == 2)
+      page_flip_v(norm, tw, th);
+    else if (tr == 3)
+      page_flip_h(norm, tw, th);
+    for (y = 0; y < th; y++)
+    {
+      memcpy(line, norm + (size_t)y * tw, (size_t)tw);
       if (cupsRasterWritePixels(ras, line, (unsigned)tw) != (unsigned)tw)
       {
+        free(norm);
         free(line);
         return -1;
       }
     }
+    free(norm);
   }
   free(line);
   return 0;
@@ -594,6 +711,8 @@ render_pdf_builtin(const konica_cfg_t *cfg, const char *pdf_path, const char *ra
   if (pages < 0)
     goto out;
 
+  char backside = ppd_backside(cfg->ppd);
+
   fd = open(ras_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
   if (fd < 0)
     goto out;
@@ -618,7 +737,7 @@ render_pdf_builtin(const konica_cfg_t *cfg, const char *pdf_path, const char *ra
       goto out;
     }
     if (raster_append_page(ras, px, sw, sh, tw, th, pw, ph, res, duplex, tumble,
-                               slot_media_pos(cfg, options)) != 0)
+                               slot_media_pos(cfg, options), backside, i) != 0)
     {
       free(px);
       goto out;
