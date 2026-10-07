@@ -5,3 +5,4 @@ pkg-config
 *.bin
 *.state
 test-watchdog
+test-ppd

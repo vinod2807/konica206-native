@@ -200,7 +200,10 @@ konica_child_limits(const konica_cfg_t *cfg)
   }
 }
 
-/* Read "*PaperDimension <name>" (points) from the PPD. */
+/* Read "*PaperDimension <name>" (points) from the PPD.
+ * PPDs use the translated keyword form, e.g.
+ *   *PaperDimension A4/A4: "595 842"
+ * so accept an optional "/translation" suffix between the name and ':'. */
 static int
 ppd_paper_points(const char *ppd_path, const char *name, double *w, double *h)
 {
@@ -212,10 +215,13 @@ ppd_paper_points(const char *ppd_path, const char *name, double *w, double *h)
   snprintf(key, sizeof(key), "*PaperDimension %s", name);
   while (fgets(line, sizeof(line), fp))
   {
-    if (!strncmp(line, key, strlen(key)))
+    size_t kl = strlen(key);
+
+    if (!strncmp(line, key, kl) && (line[kl] == ':' || line[kl] == '/' || line[kl] == ' '))
     {
+      const char *colon = strchr(line + kl, ':');
       double pw = 0, ph = 0;
-      if (sscanf(line + strlen(key), ": \"%lf %lf\"", &pw, &ph) == 2 && pw > 0 && ph > 0)
+      if (colon && sscanf(colon + 1, " \"%lf %lf\"", &pw, &ph) == 2 && pw > 0 && ph > 0)
       {
         fclose(fp);
         *w = pw;
