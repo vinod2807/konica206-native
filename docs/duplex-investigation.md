@@ -50,13 +50,16 @@ including ~2.4% fully-inverted pixels) — but orientation-independent.
    builtin vs `0,0,595,842` / `1.0` on system. Fixed to mirror.
 3. Neither fix changed the binding outcome.
 
-## Conclusion
+## Conclusion (resolved 2026-10-07)
 
-Content-deterministic (Case 1 per procedure) but **no control-byte cause
-identified**: headers, PJL, tails and placement are equivalent, yet the
-printer binds the streams differently. No binding/tumble/header patch
-was made. Live default stays `system` (pinned in code, service file and
-docs); `builtin` remains behind `KONICA_PDF_RENDERER=builtin`, safe for
-single-sided work. The full evidence package (captures, hashes,
-golden vendor streams) lives in `/root/konica206-duplex-investigation/`
-(machine-local; raster captures too large for git).
+Root cause found with external review: `pdftoraster` rotates duplex
+back-side pages 180° when the PPD says `*cupsBackSide: Rotated` (ours
+does) and `Tumble` is off. The printer's `SHORTEDGE` mechanics turn that
+upside-down back page into long-edge output. The builtin path skipped the
+rotation, so backs came out flipped. Headers, PJL and placement are now
+mirrored including the rotation rule table (Rotated/ManualTumble/
+Flipped); offline comparison shows 0.569% bit difference on both pages
+(pure antialiasing), and the golden 2-page duplex prints long-edge on
+paper. The earlier "no control-byte cause" assessment is superseded:
+the cause was a missing *transformation*, invisible to header/PJL diffs.
+Live default stays `system` until the soak period passes.
